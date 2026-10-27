@@ -4,6 +4,10 @@ name: release
 # with SHA256SUMS, a multi-arch image at ghcr.io/wayju/fleetwatch tagged X.Y.Z
 # and X.Y, a GitHub Release, and signed build provenance for the binaries and
 # the image. The tag must match cmd/fleetwatch/VERSION and sit on main.
+#
+# While the repository is private the release is published as a prerelease
+# without provenance: GitHub stores attestations only for public repositories
+# on a personal account, so a private preview build would otherwise fail.
 on:
   push:
     tags:
@@ -148,6 +152,7 @@ jobs:
             org.opencontainers.image.version=${{ needs.build.outputs.version }}
 
       - name: Attest the image provenance
+        if: ${{ !github.event.repository.private }}
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-name: ${{ env.IMAGE }}
@@ -172,6 +177,7 @@ jobs:
         run: cd dist && sha256sum -c SHA256SUMS
 
       - name: Attest the binaries
+        if: ${{ !github.event.repository.private }}
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: |
@@ -185,6 +191,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
           VERSION: ${{ needs.build.outputs.version }}
+          PRIVATE: ${{ github.event.repository.private }}
         run: |
           set -eu
           # A published release is never overwritten: a rerun that finds it
@@ -193,4 +200,6 @@ jobs:
             echo "::error::release $TAG already exists; assets are not replaced"
             exit 1
           fi
-          gh release create "$TAG" dist/* --verify-tag --title "FleetWatch $VERSION" --generate-notes
+          pre=()
+          [ "$PRIVATE" = "true" ] && pre=(--prerelease)
+          gh release create "$TAG" dist/* --verify-tag "${pre[@]}" --title "FleetWatch $VERSION" --generate-notes

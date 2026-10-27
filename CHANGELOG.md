@@ -6,9 +6,18 @@ All notable changes to FleetWatch are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-27
+
+### Changed
+
+- A release cut from a private repository is published as a prerelease without
+  build provenance, since GitHub stores attestations only for public
+  repositories on a personal account.
+
 ## [0.1.1] - 2026-10-27
 
-First public release.
+Tagged but not published: its release run failed at the provenance step on the
+private preview repository. The changes below ship in 0.1.2.
 
 ### Changed
 
