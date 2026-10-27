@@ -1,0 +1,5 @@
+{
+  "name": "fleet-state",
+  "version": "1.0.0",
+  "description": "Writes a FleetWatch session state file on each hook event, so the fleet board knows when a session waits for approval or has stopped. Needs jq."
+}

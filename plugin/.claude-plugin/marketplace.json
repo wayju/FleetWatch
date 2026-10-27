@@ -1,0 +1,11 @@
+{
+  "name": "fleetwatch",
+  "owner": {"name": "fleetwatch"},
+  "plugins": [
+    {
+      "name": "fleet-state",
+      "source": "./claude-code",
+      "description": "Writes a FleetWatch session state file on each hook event. Needs jq."
+    }
+  ]
+}

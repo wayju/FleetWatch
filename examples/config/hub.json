@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "host": "laptop",
+  "hub": {
+    "local": true,
+    "upstreams": [
+      {
+        "name": "build-box",
+        "url": "https://build-box.example.com:8909",
+        "token_file": "~/.config/fleet/build-box.token"
+      },
+      {
+        "name": "gpu-box",
+        "url": "https://gpu-box.example.com:8909",
+        "token_file": "~/.config/fleet/gpu-box.token"
+      }
+    ]
+  }
+}

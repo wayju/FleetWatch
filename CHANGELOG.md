@@ -1,0 +1,88 @@
+# Changelog: FleetWatch
+
+All notable changes to FleetWatch are recorded here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
+[semantic versioning](https://semver.org/).
+
+## [Unreleased]
+
+## [0.1.1] - 2026-10-27
+
+First public release.
+
+### Changed
+
+- Sessions carry `agent_version`, the coding agent's own version. `claude_version`
+  is still emitted with the same value, but it is deprecated and removed in 0.2;
+  use `agent_version`.
+- The default worktree roots are now none, so the worktree view is off until
+  `worktrees.roots` names a root (formerly `~/src` at depth 1).
+- The recap prompt calls the session a coding-agent session rather than a
+  Claude Code session.
+- Darwin binaries are dropped from the release matrix. FleetWatch is Linux only
+  (or a mounted `/proc`); macOS is not supported in 0.1 because no `ps`-based
+  runtime exists yet.
+
+- Hub upstreams and the recap gateway must use `https://`. A plain `http://`
+  URL is accepted only for a loopback host (127.0.0.0/8, `::1`, `localhost`)
+  or when the entry sets `allow_insecure: true`, which logs a warning at start.
+  Existing configs that point at a remote `http://` host need one of the two.
+- The hub and the recap client no longer follow HTTP redirects, so the bearer
+  token cannot be replayed to a redirect target. A redirect shows as an error.
+- The largest event a hub accepts from an upstream drops from 64 MiB to 8 MiB.
+  `hub.max_event_bytes` (64 KiB to 256 MiB) tunes it.
+- The built-in Go memory limit (192 MiB) is removed. `server.memory_limit_mib`
+  sets one; the default is none, and `GOMEMLIMIT` still wins.
+- The redactor keeps a 40-hex git commit id when it follows a git cue on the
+  same line (`commit`, `sha`, `git show`, `/commit/`, a `..` range). A bare
+  40-hex run, which is also the shape of a Gitea token, and any longer hex run
+  are still redacted.
+- The generated token file is read without following symlinks, and a
+  non-regular file at that path is an error.
+- The Claude Code hook script validates the process id it records and writes
+  timestamps with sub-second precision where `date` supports it.
+
+## [0.1.0] - 2026-10-27
+
+Tagged but never published; 0.1.1 is the first public release.
+
+### Added
+
+- A live board of every Claude Code session on a host, with the subagents under
+  each one, served as JSON (`/v1/fleet`) and Server-Sent Events (`/v1/events`).
+- Runtime adapters: `proc` (processes through `/proc`), `tmux` (panes, with
+  optional screen scraping driven by a rules file), `herdr` (read-only, over
+  herdr's local socket) and `hookfile` (state files written by the bundled Claude
+  Code hook plugin or any tool following `schema/session-state.v1.json`).
+- Agent adapter `claudecode`: transcripts, account, model, context use,
+  subagents, messages between sessions, recap input and API-equivalent cost.
+- Ranked state merge: native 50, hook 40, herdr screen 25, projection 30,
+  pane 20, transcript 10, process 0. The highest-ranked unexpired signal wins.
+- The `fleet-state` Claude Code plugin, which reports approval prompts,
+  questions and stops exactly.
+- Hub mode: merge several hosts' boards into one, with per-upstream health.
+- Forges: Gitea and GitHub issue and merge state, selected by a repo's remote
+  host. Token read once from the environment or a file.
+- Optional LLM recap of each live session, off until a URL, model and key are
+  all set.
+- Strict-JSON configuration with environment overrides. Nothing site-specific
+  (model names, prices, hosts, owners) is compiled in.
+- `location` on each session: tmux's `session:window.pane` label.
+- `name`, `version` and `commit` on `/version` and `/v1/version`. The version comes from
+  the `cmd/fleetwatch/VERSION` file embedded in the binary.
+- Release packaging: static binaries for linux on amd64 and arm64,
+  a `SHA256SUMS` file and a linux/amd64 container image (arm64 image: later).
+
+### Security
+
+- Binds `127.0.0.1` by default. Exposing the board is an explicit `server.bind`.
+- `/fleet` and `/events` need a bearer token, compared in constant time. With
+  `FLEET_TOKEN` unset a random token is generated into
+  `$XDG_STATE_HOME/fleet/token` (mode 0600) and its path, never its value, is
+  logged.
+- `Host` header allowlist (421), subscriber cap (503), write deadlines, and
+  file reads that refuse symlinks and FIFOs.
+- Free text is redacted and clipped, and `show_text: false` removes it entirely.
+  Account emails never leave the process.
+- Adapters are read-only: no keys, text or prompts are ever sent to a session.
+  `/proc/<pid>/environ`, `cwd`, `fd` and `exe` are never read.

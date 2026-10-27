@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "cost": {
+    "prices": "/etc/fleet/prices.json"
+  },
+  "models": [
+    {
+      "match": "example-large-*",
+      "context_window": 200000,
+      "class": "large"
+    },
+    {
+      "match": "example-small-*",
+      "context_window": 128000,
+      "class": "small"
+    }
+  ],
+  "recap": {
+    "url": "https://gateway.example.com:4000",
+    "model": "my-summary-model",
+    "every": "5m"
+  },
+  "runtimes": [
+    {
+      "type": "proc"
+    }
+  ],
+  "agents": [
+    {
+      "type": "claudecode"
+    }
+  ],
+  "forges": [
+    {
+      "kind": "gitea",
+      "host": "git.example.com",
+      "api_url": "https://git.example.com",
+      "web_url": "https://git.example.com",
+      "token_env": "GITEA_TOKEN",
+      "owners": [
+        "my-org"
+      ]
+    }
+  ]
+}

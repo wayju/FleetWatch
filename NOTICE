@@ -1,0 +1,7 @@
+FleetWatch
+Copyright 2026 Wayne Thomson
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+This product contains no third-party code: it is written against the Go
+standard library only.

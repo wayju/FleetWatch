@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "runtimes": [
+    {
+      "type": "proc"
+    },
+    {
+      "type": "herdr"
+    }
+  ],
+  "agents": [
+    {
+      "type": "claudecode"
+    }
+  ]
+}

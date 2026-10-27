@@ -1,0 +1,5 @@
+user@host ~
+❯ ls
+README.md  main.go
+user@host ~
+❯
