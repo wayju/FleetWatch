@@ -17,6 +17,8 @@ The version is the single line in `cmd/fleetwatch/VERSION`, embedded in the bina
    - `image` builds a multi-arch (amd64 and arm64) image from `Dockerfile.release`, pushes `ghcr.io/wayju/fleetwatch:<version>` and `:<major.minor>`, and attests its build provenance.
    - `release` attests the binaries and publishes a GitHub release with the binaries and `SHA256SUMS` attached.
 
+   While the repository is private, both attestation steps are skipped and the release is marked as a prerelease. GitHub stores attestations only for public repositories on a personal account, so `gh attestation verify` works only for releases cut after the repository went public.
+
 ## Verifying a download
 
 ```sh

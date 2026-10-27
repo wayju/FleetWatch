@@ -48,7 +48,7 @@ The board is assembled from two kinds of adapter, each a package under `internal
 | `GET /fleet` | the latest board as JSON |
 | `GET /health` | 200 while passes are completing, else 503; includes the effective `profile` |
 | `GET /liveness` | the process is up (use it as a container healthcheck) |
-| `GET /version` | `{"name": "FleetWatch", "version": "0.1.1", "commit": "<build commit>"}` |
+| `GET /version` | `{"name": "FleetWatch", "version": "0.1.2", "commit": "<build commit>"}` |
 
 Every route is also served under `/v1` (`/v1/fleet`, `/v1/events`, `/v1/health`, `/v1/liveness`, `/v1/version`) with the same guards, so a client can pin the contract. `/fleet` and `/events` need `Authorization: Bearer <token>`; the three probe routes do not. The version is the `cmd/fleetwatch/VERSION` file embedded in the binary, unless the build sets `APP_VERSION` (other than `dev`) or a link-time stamp. The commit is `APP_COMMIT` or the stamp, else `unknown`.
 
@@ -84,7 +84,7 @@ docker run --rm --pid=host --user 1000:1000 -p 127.0.0.1:8909:8909 \
   -e FLEET_BIND=0.0.0.0 -e FLEET_ALLOWED_HOSTS=127.0.0.1:8909,localhost:8909 \
   -v ~/.claude:/home/fleet/.claude:ro -e FLEET_HOME=/home/fleet \
   -v ~/.config/fleet:/etc/fleet:ro -e FLEET_CONFIG=/etc/fleet/config.json \
-  ghcr.io/wayju/fleetwatch:0.1.1
+  ghcr.io/wayju/fleetwatch:0.1.2
 ```
 
 Publish the port on `127.0.0.1` as above unless you have read the exposure rules in [docs/security.md](docs/security.md). `/health` answers 200 once a poll has completed, which makes it a usable container healthcheck alongside `/liveness`.
