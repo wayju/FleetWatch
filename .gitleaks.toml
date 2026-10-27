@@ -1,0 +1,17 @@
+# Extends the bundled ruleset. No file is exempt: the redaction tests hold
+# synthetic credentials, and each is allowed by its exact value below, so a
+# real secret pasted into those files is still found. A new fake value in a
+# test needs a new line here.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic credentials the redaction tests must catch"
+regexes = [
+  '''^abcdef123456$''',
+  '''^abcdefghij12$''',
+  '''^0123456789abcdef$''',
+  '''^admin:s3cr3tvalue$''',
+  '''^bob:pa55word$''',
+  '''^AIzaSyA-1234567890abcdefghijklmnopqrstu$''',
+]

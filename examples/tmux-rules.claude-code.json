@@ -1,0 +1,19 @@
+{
+  "claudecode": [
+    {
+      "state": "approval",
+      "reason": "permission prompt on screen",
+      "regex": "(?s)Do you want to[^\\n]*\\n\\s*❯ 1\\.[^\\n]*(?:\\n[^\\n]*){0,8}\\n[^\\n]*Esc to cancel[^\\n]*$"
+    },
+    {
+      "state": "working",
+      "reason": "spinner line on screen",
+      "regex": "(?m)^\\S\\s+\\S+… \\(\\d+[smh][^\\n]*\\)$"
+    },
+    {
+      "state": "waiting",
+      "reason": "empty input box on screen",
+      "regex": "(?m)^❯[^\\n]*\\n─{10,}\\n[^\\n]*\\n[^\\n]*(?:mode on|\\? for shortcuts)"
+    }
+  ]
+}

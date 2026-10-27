@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "runtimes": [
+    {
+      "type": "proc"
+    },
+    {
+      "type": "tmux",
+      "scrape": true,
+      "rules": "~/.config/fleet/tmux-rules.json"
+    }
+  ],
+  "agents": [
+    {
+      "type": "claudecode"
+    }
+  ]
+}

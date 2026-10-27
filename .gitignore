@@ -1,0 +1,4 @@
+/fleetwatch
+/dist/
+*.test
+coverage.out

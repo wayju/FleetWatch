@@ -1,0 +1,284 @@
+{
+ "generated_at": 1792576830,
+ "host": "host-a",
+ "counts": {
+  "live": 3,
+  "working": 1,
+  "waiting": 1,
+  "approval": 0,
+  "agents_running": 0,
+  "servers": 0,
+  "servers_stale": 0
+ },
+ "sessions": [
+  {
+   "id": "aaaaaaaa-1111-2222-3333-444444444444",
+   "short": "aaaaaaaa",
+   "live": true,
+   "link": "session-file",
+   "pid": 100,
+   "host": "host-a",
+   "runtime": "proc",
+   "account": {},
+   "account_key": "unknown",
+   "state": "waiting",
+   "state_source": "transcript",
+   "state_since": 1792576809,
+   "cwd": "/repo",
+   "repo": {},
+   "branch": "feature/42-fleet",
+   "agent_version": "2.1.3",
+   "claude_version": "2.1.3",
+   "model": "claude-sonnet-5-5",
+   "context": {
+    "tokens": 0,
+    "limit": 0,
+    "pct": 0,
+    "source": "none"
+   },
+   "issues": [
+    {
+     "number": 42,
+     "source": "branch"
+    }
+   ],
+   "recap": {
+    "first_prompt": "work",
+    "last_prompt": "work",
+    "last_reply": "Waiting on you."
+   },
+   "tools": [],
+   "current": null,
+   "agents": [],
+   "agent_totals": {
+    "total": 0,
+    "running": 0,
+    "last_finished_at": 0
+   },
+   "messages": null,
+   "started_at": 1792576800,
+   "last_activity": 1792576809,
+   "cost": {
+    "usd": 0,
+    "partial": false,
+    "priced_as_of": "2026-10-22",
+    "tokens": {
+     "input": 0,
+     "cache_write_5m": 0,
+     "cache_write_1h": 0,
+     "cache_read": 0,
+     "output": 0
+    },
+    "by_model": []
+   },
+   "next_wake": null,
+   "servers": []
+  },
+  {
+   "id": "bbbbbbbb-1111-2222-3333-444444444444",
+   "short": "bbbbbbbb",
+   "live": true,
+   "link": "guess",
+   "pid": 300,
+   "host": "host-a",
+   "runtime": "proc",
+   "account": {},
+   "account_key": "unknown",
+   "state": "working",
+   "state_source": "transcript",
+   "state_since": 1792576820,
+   "cwd": "/repo",
+   "repo": {},
+   "branch": "feature/42-fleet",
+   "agent_version": "2.1.3",
+   "claude_version": "2.1.3",
+   "model": "claude-sonnet-5-5",
+   "context": {
+    "tokens": 50000,
+    "limit": 0,
+    "pct": 0,
+    "source": "unknown"
+   },
+   "issues": [
+    {
+     "number": 42,
+     "source": "branch"
+    }
+   ],
+   "recap": {
+    "first_prompt": "tidy",
+    "last_prompt": "tidy"
+   },
+   "tools": [
+    {
+     "name": "Bash",
+     "target": "npm test",
+     "at": 1792576820,
+     "status": "running"
+    }
+   ],
+   "current": {
+    "name": "Bash",
+    "target": "npm test",
+    "at": 1792576820,
+    "status": "running"
+   },
+   "agents": [],
+   "agent_totals": {
+    "total": 0,
+    "running": 0,
+    "last_finished_at": 0
+   },
+   "messages": null,
+   "started_at": 1792576800,
+   "last_activity": 1792576820,
+   "cost": {
+    "usd": 0.010018,
+    "partial": false,
+    "priced_as_of": "2026-10-22",
+    "tokens": {
+     "input": 10,
+     "cache_write_5m": 0,
+     "cache_write_1h": 0,
+     "cache_read": 49990,
+     "output": 0
+    },
+    "by_model": [
+     {
+      "model": "claude-sonnet-5-5",
+      "usd": 0.010018,
+      "messages": 1,
+      "tokens": {
+       "input": 10,
+       "cache_write_5m": 0,
+       "cache_write_1h": 0,
+       "cache_read": 49990,
+       "output": 0
+      }
+     }
+    ]
+   },
+   "next_wake": null,
+   "servers": []
+  },
+  {
+   "id": "pid-200",
+   "short": "pid-200",
+   "live": true,
+   "link": "none",
+   "pid": 200,
+   "host": "host-a",
+   "runtime": "proc",
+   "account": {},
+   "account_key": "unknown",
+   "state": "starting",
+   "state_source": "process",
+   "state_since": 1792576800,
+   "repo": {},
+   "context": {
+    "tokens": 0,
+    "limit": 0,
+    "pct": 0,
+    "source": ""
+   },
+   "issues": [],
+   "tools": [],
+   "current": null,
+   "agents": [],
+   "agent_totals": {
+    "total": 0,
+    "running": 0,
+    "last_finished_at": 0
+   },
+   "messages": [],
+   "started_at": 1792576800,
+   "last_activity": 0,
+   "cost": {
+    "usd": 0,
+    "partial": false,
+    "priced_as_of": "2026-10-22",
+    "tokens": {
+     "input": 0,
+     "cache_write_5m": 0,
+     "cache_write_1h": 0,
+     "cache_read": 0,
+     "output": 0
+    },
+    "by_model": []
+   },
+   "next_wake": null,
+   "servers": []
+  }
+ ],
+ "accounts": [
+  {
+   "key": "unknown",
+   "slots": [
+    "default"
+   ],
+   "sessions": 3,
+   "live": 3
+  }
+ ],
+ "branches": [
+  {
+   "repo": "",
+   "branch": "feature/42-fleet",
+   "sessions": [
+    "aaaaaaaa-1111-2222-3333-444444444444",
+    "bbbbbbbb-1111-2222-3333-444444444444"
+   ],
+   "shared": true
+  }
+ ],
+ "worktrees": [],
+ "links": [],
+ "log": [
+  {
+   "at": 1792576800,
+   "session": "aaaaaaaa-1111-2222-3333-444444444444",
+   "short": "aaaaaaaa",
+   "kind": "prompt",
+   "text": "work"
+  },
+  {
+   "at": 1792576809,
+   "session": "aaaaaaaa-1111-2222-3333-444444444444",
+   "short": "aaaaaaaa",
+   "kind": "turn",
+   "text": "turn done"
+  },
+  {
+   "at": 1792576810,
+   "session": "bbbbbbbb-1111-2222-3333-444444444444",
+   "short": "bbbbbbbb",
+   "kind": "prompt",
+   "text": "tidy"
+  },
+  {
+   "at": 1792576820,
+   "session": "bbbbbbbb-1111-2222-3333-444444444444",
+   "short": "bbbbbbbb",
+   "kind": "tool",
+   "text": "Bash · npm test"
+  }
+ ],
+ "cost": {
+  "usd": 0.010018,
+  "by_model": [
+   {
+    "model": "claude-sonnet-5-5",
+    "usd": 0.010018,
+    "messages": 1,
+    "tokens": {
+     "input": 10,
+     "cache_write_5m": 0,
+     "cache_write_1h": 0,
+     "cache_read": 49990,
+     "output": 0
+    }
+   }
+  ],
+  "priced_as_of": "2026-10-22"
+ }
+}

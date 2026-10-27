@@ -1,0 +1,12 @@
+
+● Reading the module layout before changing anything.
+
+  Read 3 files
+
+✢ Incubating… (8s · ↓ 304 tokens)
+
+────────────────────────────────────────
+❯
+────────────────────────────────────────
+  Opus 5.5 ▓▓▓░░░░░░░ 32%
+  ⏵⏵ auto mode on (shift+tab to cycle)

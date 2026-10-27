@@ -1,0 +1,9 @@
+
+● Done. The change is merged.
+
+✻ Waiting for 1 background agent to finish
+────────────────────────────────────────
+❯
+────────────────────────────────────────
+  Opus 5.5 ▓░░░░░░░░░ 19%
+  ⏵⏵ auto mode on · 1 shell

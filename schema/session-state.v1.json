@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/wayju/fleetwatch/schema/session-state.v1.json",
+  "title": "FleetWatch session state file",
+  "description": "One file per agent session at $XDG_STATE_HOME/fleet/sessions/<session_id>.json (default ~/.local/state). Write it atomically (temp file in the same directory, then rename) with mode 0600 in a 0700 directory, and delete it when the session ends. The reader trusts the newest observed_at only while it is fresh, so keep writing on activity.",
+  "type": "object",
+  "required": ["schema", "session_id", "pid", "state", "reason", "hook_event", "pane", "observed_at"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {"const": 1},
+    "session_id": {"type": "string", "pattern": "^[A-Za-z0-9_-]+$", "description": "Must equal the file name without .json."},
+    "pid": {"type": "integer", "minimum": 0, "description": "The agent process id; 0 when unknown. Used to join a session the reader could not bind by id."},
+    "state": {"enum": ["working", "waiting", "approval", "question", "idle"]},
+    "reason": {"type": "string", "description": "Short human-readable cause, shown on the board."},
+    "hook_event": {"type": "string", "description": "The event that produced the write, for example PermissionRequest."},
+    "pane": {"type": "string", "description": "Terminal pane id such as a tmux %3; empty when none."},
+    "cwd": {"type": "string"},
+    "observed_at": {"type": "string", "format": "date-time", "description": "RFC 3339, UTC."}
+  }
+}

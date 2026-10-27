@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "runtimes": [
+    {
+      "type": "proc"
+    },
+    {
+      "type": "tmux"
+    },
+    {
+      "type": "hookfile",
+      "fresh": "1h"
+    }
+  ],
+  "agents": [
+    {
+      "type": "claudecode"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+# fleetwatch release image: packages the static binaries the release workflow
+# cross-compiled. Build context is this directory with dist/fleetwatch-linux-<arch>
+# in place; TARGETARCH is amd64 or arm64. The apk upgrade is a RUN step (the
+# image CVE sweep relies on it), so the foreign architecture builds under QEMU:
+# the GitHub release publishes amd64 and arm64 images, and a build on one
+# architecture can pass --platform to build only its own. The base image is
+# public and overridable with --build-arg ALPINE_IMAGE=....
+ARG ALPINE_IMAGE=alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
+FROM ${ALPINE_IMAGE}
+RUN apk upgrade --no-cache
+ARG TARGETARCH
+ARG APP_COMMIT=unknown
+ENV APP_COMMIT=${APP_COMMIT}
+COPY dist/fleetwatch-linux-${TARGETARCH} /usr/local/bin/fleetwatch
+USER 1000:1000
+EXPOSE 8909
+ENTRYPOINT ["/usr/local/bin/fleetwatch"]
