@@ -101,5 +101,17 @@ const tight = [{ id: 'A', x: 0, y: 0, w: 100, h: 60 }, { id: 'B', x: 104, y: 0, 
 const t = route.fleetRoute(tight, [lk('A', 'B')], { bounds: { x0: 0, y0: 0, x1: 204, y1: 60 } });
 assert(t.length === 1 && t[0].fallback === true && t[0].end.x === 104, 'with no gutter wide enough the link still draws, flagged as a fallback');
 
+console.log('pinned ports');
+const pinned = route.fleetRoute(cards, [
+  { from: 'A', to: 'B', kind: 'message', label: 'x', fromY: byId.A.y + 150, toY: byId.B.y + 200 },
+  { from: 'A', to: 'B', kind: 'message', label: 'y' },
+  { from: 'A', to: 'C', kind: 'message', label: 'z', fromY: byId.A.y + 150 },
+], { bounds });
+assert(pinned[0].start.y === byId.A.y + 150 && pinned[0].end.y === byId.B.y + 200, 'a link pinned to a height leaves and enters there');
+assert(pinned[1].start.y !== pinned[0].start.y && pinned[1].start.y < byId.A.y + 150, 'an unpinned link steps round the pinned port');
+assert(pinned[2].start.y !== pinned[0].start.y && Math.abs(pinned[2].start.y - pinned[0].start.y) >= 9, 'two links pinned to the same height are nudged apart');
+const clamped = route.fleetRoute(cards, [{ from: 'A', to: 'B', kind: 'message', label: 'x', fromY: -500, toY: 99999 }], { bounds });
+assert(clamped[0].start.y > byId.A.y && clamped[0].end.y < byId.B.y + byId.B.h, 'a pinned height outside the card is clamped onto its edge');
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

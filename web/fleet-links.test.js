@@ -19,7 +19,7 @@ function link(over) {
   return Object.assign({ from: 'S1', to: 'S2', from_agent: '', to_agent: '', kind: 'message', at: NOW - 10, external: false }, over);
 }
 
-// Card selection: arrows run card to card, whatever agents sit inside them.
+// Card selection: across cards the arrow runs card to card; inside one card it runs between boxes.
 const s1 = el('s1'), s2 = el('s2');
 let map = { 'fl-S1': s1, 'fl-S2': s2 };
 let e = links.fleetLinkCards(link(), NOW, lookup(map));
@@ -28,12 +28,40 @@ e = links.fleetLinkCards(link({ from_agent: 'A', to_agent: 'B' }), NOW, lookup(m
 assert(e && e.src === s1 && e.dst === s2 && e.cls === 'fl-link-agent', 'agent traffic still ends on the session cards, with the agent class');
 e = links.fleetLinkCards(link({ from_agent: 'A', kind: 'handback' }), NOW, lookup(map));
 assert(e && e.cls === 'fl-link-handback', 'handback gets the handback class');
-assert(links.fleetLinkCards(link({ to: 'S1' }), NOW, lookup(map)) === null, 'a message inside one card draws no arrow');
+assert(e.inCard === false && e.srcBox === null && e.dstBox === null, 'card to card without visible subagent boxes pins nothing');
 assert(links.fleetLinkCards(link({ to: 'GONE' }), NOW, lookup(map)) === null, 'missing card skipped');
 assert(links.fleetLinkCards(link({ external: true }), NOW, lookup(map)) === null, 'external link skipped');
 assert(links.fleetLinkCards(link({ at: NOW - 31 }), NOW, lookup(map)) === null, 'a link older than 30 seconds is not drawn');
 assert(links.fleetLinkCards(link({ at: NOW - 30 }), NOW, lookup(map)) !== null, 'a link exactly 30 seconds old is still drawn');
 assert(links.fleetLinkCards(link(), NOW, lookup({ 'fl-S1': s1, 'fl-S2': el('hidden', false) })) === null, 'a card with no box is skipped');
+// Same-card links: a box of the card header, or a subagent box when it shows.
+function card(name, within) {
+  const head = el(name + '-head');
+  const c = Object.assign(el(name), { querySelector: (q) => (q === '.fl-card-head' ? head : null), contains: (x) => x === head || within.indexOf(x) >= 0 });
+  return { c, head };
+}
+const a1 = el('ag-A'), a2 = el('ag-B'), foreign = el('ag-X');
+const k1 = card('k1', [a1, a2]);
+const kmap = { 'fl-K1': k1.c, 'fl-ag-A': a1, 'fl-ag-B': a2, 'fl-ag-X': foreign };
+e = links.fleetLinkCards(link({ from: 'K1', to: 'K1', to_agent: 'A' }), NOW, lookup(kmap));
+assert(e && e.inCard && e.srcBox === k1.head && e.dstBox === a1 && e.cls === 'fl-link-agent', 'session to its own subagent runs header to agent box');
+e = links.fleetLinkCards(link({ from: 'K1', to: 'K1', from_agent: 'A', kind: 'handback' }), NOW, lookup(kmap));
+assert(e && e.inCard && e.srcBox === a1 && e.dstBox === k1.head && e.cls === 'fl-link-handback', 'a hand-back runs from the agent box to the header');
+e = links.fleetLinkCards(link({ from: 'K1', to: 'K1', from_agent: 'A', to_agent: 'B' }), NOW, lookup(kmap));
+assert(e && e.inCard && e.srcBox === a1 && e.dstBox === a2, 'sibling to sibling runs between the two boxes');
+assert(links.fleetLinkCards(link({ from: 'K1', to: 'K1' }), NOW, lookup(kmap)) === null, 'header to header draws nothing');
+assert(links.fleetLinkCards(link({ from: 'K1', to: 'K1', from_agent: 'A', to_agent: 'A' }), NOW, lookup(kmap)) === null, 'one box to itself draws nothing');
+assert(links.fleetLinkCards(link({ from: 'K1', to: 'K1', from_agent: 'A', to_agent: 'B' }), NOW, lookup({ 'fl-K1': k1.c })) === null, 'agents with no box on the page fall back to the header and draw nothing');
+const folded2 = Object.assign(el('f'), { checkVisibility: () => false });
+e = links.fleetLinkCards(link({ from: 'K1', to: 'K1', from_agent: 'A', to_agent: 'B' }), NOW, lookup({ 'fl-K1': k1.c, 'fl-ag-A': a1, 'fl-ag-B': folded2 }));
+assert(e && e.srcBox === a1 && e.dstBox === k1.head, 'a folded box falls back to the card header');
+assert(links.fleetLinkCards(link({ from: 'K1', to: 'K1', to_agent: 'X' }), NOW, lookup(kmap)) === null, 'a box outside the card is ignored');
+assert(links.fleetLinkCards(link({ from: 'K1', to: 'K1', to_agent: 'A', at: NOW - 31 }), NOW, lookup(kmap)) === null, 'the 30 second rule holds inside a card');
+// Across cards a visible subagent box is the anchor.
+const k2 = card('k2', []);
+e = links.fleetLinkCards(link({ from: 'K1', to: 'K2', from_agent: 'A' }), NOW, lookup(Object.assign({ 'fl-K2': k2.c }, kmap)));
+assert(e && !e.inCard && e.src === k1.c && e.dst === k2.c && e.srcBox === a1 && e.dstBox === null, 'a cross-card link anchors on a visible subagent box');
+
 // A closed <details> still reports rects for its content, at a phantom spot below the card.
 const folded = Object.assign(el('folded'), { checkVisibility: () => false });
 assert(links.fleetHasBox(folded) === false, 'checkVisibility false means no box despite client rects');

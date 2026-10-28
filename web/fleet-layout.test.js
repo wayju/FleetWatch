@@ -41,12 +41,17 @@ function session(n, over) {
 function board() {
   const now = Math.floor(Date.now() / 1000);
   const sessions = [1, 2, 3, 4, 5, 6].map((n) => session(n, { state_since: now - 60 * n, started_at: now - 3600, last_activity: now - 5 }));
+  const agent = (id, type) => ({ id, type, status: 'running', background: true, description: 'fixture agent', started_at: now - 100, last_active: now - 3, events: [], tool_count: 3, context: null });
+  sessions[0].agents = [agent('a0000000000000001', 'reviewer'), agent('a0000000000000002', 'explorer')];
   const link = (from, to, ago, preview, kind) => ({ from: 'sess-' + from, to: 'sess-' + to, from_agent: '', to_agent: '', kind: kind || 'message', at: now - ago, preview, external: false });
   return {
     host: 'fixture', generated_at: now, counts: { live: 6, waiting: 3, working: 3 },
     accounts: [{ key: 'wayne@example.test', email: 'wayne@example.test', slots: ['1', '2', '3', '4', '5', '6'], live: 6 }],
     sessions, branches: [], log: [],
     links: [
+      Object.assign(link(1, 1, 3, 'look at the layout', 'message'), { to_agent: 'a0000000000000001' }),          // session to its subagent
+      Object.assign(link(1, 1, 5, 'review finished', 'handback'), { from_agent: 'a0000000000000001' }),         // hand-back to the session
+      Object.assign(link(1, 1, 7, 'pass it on', 'message'), { from_agent: 'a0000000000000001', to_agent: 'a0000000000000002' }), // sibling
       link(1, 2, 4, 'please review the narrow layout', 'message'),   // same row, left to right
       link(2, 1, 6, 'reviewed, two nits on the gutters', 'handback'),  // same row, right to left
       link(1, 4, 8, 'rebase onto main before you start', 'message'), // cross row
@@ -59,13 +64,14 @@ function board() {
 
 // What the page actually laid out, read through DevTools once the arrows are drawn.
 const MEASURE = `(function(){
-  var main=document.querySelector('.fl-main').getBoundingClientRect(),arrows=[];
+  var main=document.querySelector('.fl-main').getBoundingClientRect(),arrows=[],inner=[];
   document.querySelectorAll('#fl-links .fl-line').forEach(function(p){
-    var n=p.getAttribute('d').match(/-?[\\d.]+/g).map(Number),to=document.getElementById(p.parentNode.dataset.to).getBoundingClientRect();
-    arrows.push({endX:n[n.length-2]+main.left,endY:n[n.length-1]+main.top,left:to.left,top:to.top,bottom:to.bottom});
+    var g=p.parentNode.dataset,n=p.getAttribute('d').match(/-?[\\d.]+/g).map(Number);
+    var el=g.ta?document.getElementById('fl-ag-'+g.ta):g.from===g.to?document.querySelector('#'+g.to+' .fl-card-head'):document.getElementById(g.to),to=el.getBoundingClientRect();
+    (g.from===g.to?inner:arrows).push({endX:n[n.length-2]+main.left,endY:n[n.length-1]+main.top,left:to.left,top:to.top,bottom:to.bottom});
   });
   return {innerWidth:innerWidth,scrollWidth:document.documentElement.scrollWidth,cards:document.querySelectorAll('.fl-card').length,
-    arrows:arrows,pills:document.querySelectorAll('#fl-links .fl-pillg').length,xmsgs:document.querySelectorAll('.fl-xmsgs').length,
+    arrows:arrows,inner:inner,pills:document.querySelectorAll('#fl-links .fl-pillg').length,xmsgs:document.querySelectorAll('.fl-xmsgs').length,
     svgShown:getComputedStyle(document.getElementById('fl-links')).display!=='none'};
 })()`;
 
@@ -115,10 +121,15 @@ server.listen(0, '127.0.0.1', async () => {
     const wide = await measure(browser.page, url, 1280);
     assert(wide.cards === 6, 'all six session cards render');
     assert(wide.scrollWidth <= wide.innerWidth, 'no horizontal scroll (' + wide.scrollWidth + ' <= ' + wide.innerWidth + ')');
-    assert(wide.arrows.length === 6 && wide.pills === 6, 'six arrows, each with a label pill');
+    assert(wide.arrows.length === 6, 'six card-to-card arrows');
     wide.arrows.forEach((a, i) => {
       assert(Math.abs(a.endX - a.left) <= 0.5, 'arrow ' + (i + 1) + ' ends on its receiver left edge (' + a.endX.toFixed(1) + ' vs ' + a.left.toFixed(1) + ')');
       assert(a.endY > a.top && a.endY < a.bottom, 'arrow ' + (i + 1) + ' ends level with its receiver');
+    });
+    assert(wide.inner.length === 3 && wide.pills === 9, 'three in-card arrows, each with a label pill');
+    wide.inner.forEach((a, i) => {
+      assert(Math.abs(a.endX - a.left) <= 0.5, 'in-card arrow ' + (i + 1) + ' ends on its receiver box left edge (' + a.endX.toFixed(1) + ' vs ' + a.left.toFixed(1) + ')');
+      assert(a.endY > a.top && a.endY < a.bottom, 'in-card arrow ' + (i + 1) + ' ends level with its receiver box');
     });
     await shoot(1280);
   } catch (e) {

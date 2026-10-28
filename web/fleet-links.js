@@ -29,15 +29,33 @@ function fleetLinkSig(links, now) {
   return s;
 }
 
-// The two session cards a link joins, or null when it should not be drawn.
-// `byId` maps a DOM id to an element. Arrows run card to card (output port on
-// the sender's right edge, input port on the receiver's left), so subagent
-// boxes inside a card no longer pick the endpoint.
+// The subagent box (id fl-ag-<id>) inside `card` that a link end names, or null
+// when the link names none, the box is not on the page, or it is folded away.
+function fleetAgentBox(id, card, byId) {
+  var el = id ? byId('fl-ag-' + id) : null;
+  if (!el || !fleetHasBox(el)) return null;
+  return card.contains && !card.contains(el) ? null : el;
+}
+
+// How a link is drawn, or null when it should not be. `byId` maps a DOM id to
+// an element. Across two cards the arrow runs card to card (output port on the
+// sender's right edge, input port on the receiver's left) and srcBox/dstBox are
+// the visible subagent boxes it should line up with, or null. Inside one card
+// (inCard) the arrow runs from the sender's box to the receiver's: a subagent
+// box, else the card header. When both ends land on the same element, because a
+// box is folded away or the narrow layout hides it, nothing is drawn.
 function fleetLinkCards(l, now, byId) {
   if (!fleetLinkFresh(l, now)) return null;
   var a = byId('fl-' + l.from), c = byId('fl-' + l.to);
-  if (!a || !c || a === c || !fleetHasBox(a) || !fleetHasBox(c)) return null;
-  return { src: a, dst: c, cls: fleetLinkClass(l) };
+  if (!a || !c || !fleetHasBox(a) || !fleetHasBox(c)) return null;
+  var cls = fleetLinkClass(l);
+  var sb = fleetAgentBox(l.from_agent, a, byId), db = fleetAgentBox(l.to_agent, c, byId);
+  if (a !== c) return { src: a, dst: c, srcBox: sb, dstBox: db, cls: cls, inCard: false };
+  var head = a.querySelector ? a.querySelector('.fl-card-head') : null;
+  if (head && !fleetHasBox(head)) head = null;
+  var s = sb || head, d = db || head;
+  if (!s || !d || s === d) return null;
+  return { src: a, dst: c, srcBox: s, dstBox: d, cls: cls, inCard: true };
 }
 
-module.exports = { fleetHasBox, fleetLinkClass, fleetLinkFresh, fleetLinkSig, fleetLinkCards };
+module.exports = { fleetHasBox, fleetLinkClass, fleetLinkFresh, fleetLinkSig, fleetAgentBox, fleetLinkCards };

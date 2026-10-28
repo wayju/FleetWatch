@@ -13,6 +13,7 @@ const servers = require('./fleet-render-servers');
 const msgs = require('./fleet-render-msgs');
 const links = require('./fleet-links');
 const route = require('./fleet-route');
+const routeCard = require('./fleet-route-card');
 
 // opts.streamUrl: SSE endpoint; opts.snapshotUrl: JSON snapshot, either a bare
 // board or an {available, board, error} envelope; opts.sessionUrl: where the
@@ -31,8 +32,8 @@ function fleetClientScript(opts) {
     render.fleetAgent, render.fleetSortSessions, render.fleetOrder, render.fleetSortBy, render.fleetSortAccounts, render.fleetClean,
     render.fleetHeadline, render.fleetProse, render.fleetDescription, render.fleetPlural, render.fleetToolRow, render.fleetHistory, msgs.fleetMsgName, msgs.fleetMsgList, render.fleetSession, render.fleetBranches, render.fleetCounts, render.fleetVisible,
     render.fleetAccounts, render.fleetLog, render.fleetSlots,
-    links.fleetHasBox, links.fleetLinkClass, links.fleetLinkFresh, links.fleetLinkSig, links.fleetLinkCards, msgs.fleetLinkLabel,
-    route.fleetRouteGaps, route.fleetRouteHit, route.fleetRouteShares, route.fleetRouteLane, route.fleetRoundPath, route.fleetRouteRows, route.fleetRoutePorts, route.fleetRouteSearch, route.fleetRoutePill, route.fleetRoute,
+    links.fleetHasBox, links.fleetLinkClass, links.fleetLinkFresh, links.fleetLinkSig, links.fleetAgentBox, links.fleetLinkCards, msgs.fleetEndName, msgs.fleetLinkLabel,
+    route.fleetRouteGaps, route.fleetRouteHit, route.fleetRouteShares, route.fleetRouteLane, route.fleetRoundPath, route.fleetRouteRows, route.fleetRoutePorts, route.fleetRouteSearch, route.fleetRoutePill, route.fleetRoute, routeCard.fleetRouteAnchor, routeCard.fleetRouteInCardPoints, routeCard.fleetRouteInCard,
     wt.fleetWtWriters, wt.fleetWtName, wt.fleetWtHint, wt.fleetWtChip, wt.fleetWtRow, wt.fleetWorktrees, wt.fleetInFlight,
   ];
   return `
@@ -72,7 +73,8 @@ function flRender(){
 }
 // Arrows for messages sent in the last 30 seconds: output port on the sender's
 // right edge, input port on the receiver's left, routed through the gutters by
-// fleetRoute (pure, unit tested) and drawn here.
+// fleetRoute (pure, unit tested) and drawn here. A message inside one card is
+// routed by fleetRouteInCard instead.
 function flRects(main,base){
   var out=[],els=main.querySelectorAll('.fl-card');
   for(var i=0;i<els.length;i++){
@@ -82,6 +84,7 @@ function flRects(main,base){
   }
   return out;
 }
+function flRect(el,base){var r=el.getBoundingClientRect();return {x:r.left-base.left,y:r.top-base.top,w:r.width,h:r.height}}
 function flRects2(main,base,sel){
   var out=[],els=main.querySelectorAll(sel);
   for(var i=0;i<els.length;i++){var r=els[i].getBoundingClientRect();out.push({x:r.left-base.left,y:r.top-base.top,w:r.width,h:r.height})}
@@ -97,7 +100,7 @@ function flTextW(text){
 }
 function flLinkSvg(r,l,lab,i){
   var mk=r.cls==='fl-link-handback'?'fl-arrow-handback':r.cls==='fl-link-agent'?'fl-arrow-agent':'fl-arrow';
-  var at=' data-i="'+i+'" data-from="'+fleetEsc(r.from)+'" data-to="'+fleetEsc(r.to)+'" data-at="'+fleetEsc(l.at)+'"';
+  var at=' data-i="'+i+'" data-from="'+fleetEsc(r.from)+'" data-to="'+fleetEsc(r.to)+'" data-at="'+fleetEsc(l.at)+'" data-fa="'+fleetEsc(l.from_agent||'')+'" data-ta="'+fleetEsc(l.to_agent||'')+'"';
   var pill=r.label,cx=pill.x+pill.w/2,cy=pill.y+pill.h/2;
   return {
     line:'<g class="fl-link '+r.cls+'"'+at+'><path class="fl-hit" d="'+r.d+'"/><path class="fl-line" d="'+r.d+'" marker-end="url(#'+mk+')"/>'
@@ -114,16 +117,28 @@ function flLinks(){
   if(window.matchMedia&&window.matchMedia('(max-width:700px)').matches){svg.innerHTML='';return}
   // A redraw removes the hovered node without a mouseout, so drop any highlight it left.
   document.querySelectorAll('.fl-card.fl-hl').forEach(function(c){c.classList.remove('fl-hl')});
-  var base=main.getBoundingClientRect(),ls=[],raw=[],byId=function(id){return document.getElementById(id)};
+  var base=main.getBoundingClientRect(),ls=[],raw=[],inner=[],byId=function(id){return document.getElementById(id)};
+  // A subagent box pins the port to its own height, so the line lines up with it.
+  var portY=function(b){if(!b)return null;var r=b.getBoundingClientRect();return r.top-base.top+Math.min(r.height/2,16)};
   (FL.board.links||[]).forEach(function(l){
     var e=fleetLinkCards(l,now,byId);if(!e)return;
     var lab=fleetLinkLabel(FL.board,l,now);
-    ls.push({from:e.src.id,to:e.dst.id,kind:l.kind,label:lab.text,labelW:flTextW(lab.text)});raw.push({l:l,lab:lab,cls:e.cls});
+    if(e.inCard){inner.push({e:e,l:l,lab:lab});return}
+    ls.push({from:e.src.id,to:e.dst.id,kind:l.kind,label:lab.text,labelW:flTextW(lab.text),fromY:portY(e.srcBox),toY:portY(e.dstBox)});raw.push({l:l,lab:lab,cls:e.cls});
   });
-  var w=main.scrollWidth,h=main.scrollHeight,lines='',pills='';
-  fleetRoute(flRects(main,base),ls,{bounds:{x0:0,y0:0,x1:w,y1:h},bands:flRects2(main,base,'.fl-account-head,.fl-strip,.fl-log,.fl-wt-tail,.fl-banner')}).forEach(function(r,i){
+  var w=main.scrollWidth,h=main.scrollHeight,lines='',pills='',n=0;
+  fleetRoute(flRects(main,base),ls,{bounds:{x0:0,y0:0,x1:w,y1:h},bands:flRects2(main,base,'.fl-account-head,.fl-strip,.fl-log,.fl-wt-tail,.fl-banner')}).forEach(function(r){
     var m=raw[r.index];r.cls=m.cls;
-    var s=flLinkSvg(r,m.l,m.lab,i);lines+=s.line;pills+=s.pill;
+    var s=flLinkSvg(r,m.l,m.lab,n++);lines+=s.line;pills+=s.pill;
+  });
+  // Messages between boxes of one card run down that card's left gutter.
+  var lane={};
+  inner.forEach(function(m){
+    var card=m.e.src,k=lane[card.id]||0;lane[card.id]=k+1;
+    var r=fleetRouteInCard(flRect(card,base),flRect(m.e.srcBox,base),flRect(m.e.dstBox,base),{lane:k,label:m.lab.text,labelW:flTextW(m.lab.text),bounds:{x1:w}});
+    if(!r)return;
+    r.from=card.id;r.to=card.id;r.cls=m.e.cls;
+    var s=flLinkSvg(r,m.l,m.lab,n++);lines+=s.line;pills+=s.pill;
   });
   svg.setAttribute('width',w);svg.setAttribute('height',h);
   // Chevron heads in user-space pixels, tip on the input port, filled by kind.

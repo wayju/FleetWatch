@@ -444,6 +444,11 @@ function fleetMsgList(s, board, now) {
   }).sort(function (a, b) { return b.at - a.at; }).slice(0, 5);
   if (!rows.length) return '';
   return '<div class="fl-xmsgs"><div class="fl-xmsgs-h">messages</div>' + rows.map(function (l) {
+    if (l.from === l.to) {
+      var inner = fleetEndName(board, s.id, l.from_agent) + ' \u2192 ' + fleetEndName(board, s.id, l.to_agent) + (l.kind === 'handback' ? ' (hand-back)' : '');
+      return '<div class="fl-xmsg"><span class="fl-xmsg-dir">' + fleetEsc(inner) + '</span>'
+        + fleetAgo(l.at, now, ' ago') + '<span class="fl-xmsg-text">' + fleetEsc(l.preview || '') + '</span></div>';
+    }
     var out = l.from === s.id;
     var other = out ? l.to : l.from;
     var label = l.external ? (l.to_label || other) : fleetMsgName(board, other);
@@ -576,14 +581,40 @@ function fleetLinkSig(links, now) {
   for (var i = 0; i < (links || []).length; i++) if (fleetLinkFresh(links[i], now)) s += i + ',';
   return s;
 }
+function fleetAgentBox(id, card, byId) {
+  var el = id ? byId('fl-ag-' + id) : null;
+  if (!el || !fleetHasBox(el)) return null;
+  return card.contains && !card.contains(el) ? null : el;
+}
 function fleetLinkCards(l, now, byId) {
   if (!fleetLinkFresh(l, now)) return null;
   var a = byId('fl-' + l.from), c = byId('fl-' + l.to);
-  if (!a || !c || a === c || !fleetHasBox(a) || !fleetHasBox(c)) return null;
-  return { src: a, dst: c, cls: fleetLinkClass(l) };
+  if (!a || !c || !fleetHasBox(a) || !fleetHasBox(c)) return null;
+  var cls = fleetLinkClass(l);
+  var sb = fleetAgentBox(l.from_agent, a, byId), db = fleetAgentBox(l.to_agent, c, byId);
+  if (a !== c) return { src: a, dst: c, srcBox: sb, dstBox: db, cls: cls, inCard: false };
+  var head = a.querySelector ? a.querySelector('.fl-card-head') : null;
+  if (head && !fleetHasBox(head)) head = null;
+  var s = sb || head, d = db || head;
+  if (!s || !d || s === d) return null;
+  return { src: a, dst: c, srcBox: s, dstBox: d, cls: cls, inCard: true };
+}
+function fleetEndName(board, sid, agentId) {
+  if (!agentId) return 'main';
+  var list = (board && board.sessions) || [];
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id !== sid) continue;
+    var ag = list[i].agents || [];
+    for (var j = 0; j < ag.length; j++) {
+      if (ag[j].id === agentId) return (ag[j].type || 'agent') + ' ' + String(agentId).slice(0, 7);
+    }
+  }
+  return 'agent ' + String(agentId).slice(0, 7);
 }
 function fleetLinkLabel(board, l, now) {
-  var from = fleetMsgName(board, l.from), to = fleetMsgName(board, l.to);
+  var same = l.from === l.to;
+  var from = same ? fleetEndName(board, l.from, l.from_agent) : fleetMsgName(board, l.from);
+  var to = same ? fleetEndName(board, l.to, l.to_agent) : fleetMsgName(board, l.to);
   var full = String(l.preview || '').replace(/\s+/g, ' ').trim();
   var clip = full.length > 36 ? full.slice(0, 35).replace(/\s+$/, '') + '\u2026' : full;
   var age = fleetAge(Math.max(0, now - l.at));
@@ -651,12 +682,28 @@ function fleetRouteRows(cards, b, o) {
 }
 function fleetRoutePorts(todo, byId, o) {
   function stack(side, other) {
-    var groups = {};
-    todo.forEach(function (t) { (groups[t.l[side]] = groups[t.l[side]] || []).push(t); });
+    var groups = {}, taken = {}, pins = [];
+    function near(id, y) { return (taken[id] || []).some(function (v) { return Math.abs(v - y) < o.portStep - 1; }); }
+    function put(t, id, y) { (taken[id] = taken[id] || []).push(y); t[side + 'Y'] = y; }
+    todo.forEach(function (t) {
+      var id = t.l[side];
+      if (t.l[side + 'Y'] == null) (groups[id] = groups[id] || []).push(t);
+      else pins.push(t);
+    });
+    pins.forEach(function (t) {
+      var id = t.l[side], c = byId[id], hi = c.y + c.h - 6;
+      var y = Math.max(c.y + o.portTop, Math.min(hi, t.l[side + 'Y']));
+      while (near(id, y) && y + o.portStep <= hi) y += o.portStep;
+      put(t, id, y);
+    });
     Object.keys(groups).forEach(function (id) {
-      var c = byId[id];
+      var c = byId[id], k = 0, hi = c.y + c.h - 6;
       groups[id].sort(function (p, q) { return byId[p.l[other]].y - byId[q.l[other]].y || p.index - q.index; });
-      groups[id].forEach(function (t, n) { t[side + 'Y'] = Math.min(c.y + o.portTop + n * o.portStep, c.y + c.h - 6); });
+      groups[id].forEach(function (t) {
+        var y;
+        do { y = Math.min(c.y + o.portTop + k * o.portStep, hi); k++; } while (near(id, y) && y < hi);
+        put(t, id, y);
+      });
     });
   }
   stack('from', 'to');
@@ -745,6 +792,40 @@ function fleetRoute(cards, links, opts) {
     ctx.placed.push(pill);
     return { index: t.index, from: t.l.from, to: t.l.to, kind: t.l.kind, points: pts, d: fleetRoundPath(pts, o.radius), start: S, end: E, label: pill, fallback: !!best.fallback };
   });
+}
+function fleetRouteAnchor(r) { return r.y + Math.min(r.h / 2, 16); }
+function fleetRouteInCardPoints(card, src, dst, lane) {
+  var sy = fleetRouteAnchor(src), ey = fleetRouteAnchor(dst), nudge = lane * 3;
+  if (Math.abs(src.x - dst.x) < 2) {
+    // One column: the strip to its left, kept clear of the boxes.
+    var room = src.x - card.x;
+    var gx = card.x + (room < 4 ? room / 2 : Math.max(2, Math.min(3 + lane * 4, room - 2)));
+    return { pts: [{ x: src.x, y: sy }, { x: gx, y: sy }, { x: gx, y: ey }, { x: dst.x, y: ey }], vx: gx };
+  }
+  if (dst.x > src.x) {
+    var vx = Math.max(src.x + 1, dst.x - 4 - nudge), E = { x: dst.x, y: ey };
+    if (src.x + src.w <= vx) return { pts: [{ x: src.x + src.w, y: sy }, { x: vx, y: sy }, { x: vx, y: ey }, E], vx: vx };
+    // The sender spans over the receiver's column (the header): drop from its foot.
+    return { pts: [{ x: vx, y: src.y + src.h }, { x: vx, y: ey }, E], vx: vx };
+  }
+  var wx = Math.max(dst.x + 1, src.x - 4 - nudge), S = { x: src.x, y: sy };
+  if (dst.x + dst.w <= wx) return { pts: [S, { x: wx, y: sy }, { x: wx, y: ey }, { x: dst.x + dst.w, y: ey }], vx: wx };
+  return { pts: [S, { x: wx, y: sy }, { x: wx, y: dst.y + dst.h }], vx: wx };
+}
+function fleetRouteInCard(card, src, dst, o) {
+  o = o || {};
+  var lane = o.lane || 0, pillH = 18, charW = 6.6, pad = 18, pillMax = 480;
+  if (Math.abs(fleetRouteAnchor(src) - fleetRouteAnchor(dst)) < 1 && Math.abs(src.x - dst.x) < 1) return null;
+  var r = fleetRouteInCardPoints(card, src, dst, lane);
+  var pts = r.pts.filter(function (p, k, a) {
+    return k === 0 || Math.abs(p.x - a[k - 1].x) > 0.01 || Math.abs(p.y - a[k - 1].y) > 0.01;
+  });
+  var S = pts[0], E = pts[pts.length - 1];
+  var w = Math.min(pillMax, Math.round((o.labelW || String(o.label || '').length * charW) + pad));
+  var right = o.bounds && o.bounds.x1 != null ? Math.min(o.bounds.x1, card.x + card.w) : card.x + card.w;
+  var px = Math.max(card.x + 2, Math.min(r.vx + 10, right - w - 2));
+  var py = (S.y + E.y) / 2 - pillH / 2 + lane * (pillH + 2);
+  return { points: pts, d: fleetRoundPath(pts, 4), start: S, end: E, label: { x: px, y: py, w: w, h: pillH } };
 }
 function fleetWtWriters(wt) {
   var ws = Array.isArray(wt.writers) ? wt.writers.filter(Boolean) : [];
@@ -847,7 +928,8 @@ function flRender(){
 }
 // Arrows for messages sent in the last 30 seconds: output port on the sender's
 // right edge, input port on the receiver's left, routed through the gutters by
-// fleetRoute (pure, unit tested) and drawn here.
+// fleetRoute (pure, unit tested) and drawn here. A message inside one card is
+// routed by fleetRouteInCard instead.
 function flRects(main,base){
   var out=[],els=main.querySelectorAll('.fl-card');
   for(var i=0;i<els.length;i++){
@@ -857,6 +939,7 @@ function flRects(main,base){
   }
   return out;
 }
+function flRect(el,base){var r=el.getBoundingClientRect();return {x:r.left-base.left,y:r.top-base.top,w:r.width,h:r.height}}
 function flRects2(main,base,sel){
   var out=[],els=main.querySelectorAll(sel);
   for(var i=0;i<els.length;i++){var r=els[i].getBoundingClientRect();out.push({x:r.left-base.left,y:r.top-base.top,w:r.width,h:r.height})}
@@ -872,7 +955,7 @@ function flTextW(text){
 }
 function flLinkSvg(r,l,lab,i){
   var mk=r.cls==='fl-link-handback'?'fl-arrow-handback':r.cls==='fl-link-agent'?'fl-arrow-agent':'fl-arrow';
-  var at=' data-i="'+i+'" data-from="'+fleetEsc(r.from)+'" data-to="'+fleetEsc(r.to)+'" data-at="'+fleetEsc(l.at)+'"';
+  var at=' data-i="'+i+'" data-from="'+fleetEsc(r.from)+'" data-to="'+fleetEsc(r.to)+'" data-at="'+fleetEsc(l.at)+'" data-fa="'+fleetEsc(l.from_agent||'')+'" data-ta="'+fleetEsc(l.to_agent||'')+'"';
   var pill=r.label,cx=pill.x+pill.w/2,cy=pill.y+pill.h/2;
   return {
     line:'<g class="fl-link '+r.cls+'"'+at+'><path class="fl-hit" d="'+r.d+'"/><path class="fl-line" d="'+r.d+'" marker-end="url(#'+mk+')"/>'
@@ -889,16 +972,28 @@ function flLinks(){
   if(window.matchMedia&&window.matchMedia('(max-width:700px)').matches){svg.innerHTML='';return}
   // A redraw removes the hovered node without a mouseout, so drop any highlight it left.
   document.querySelectorAll('.fl-card.fl-hl').forEach(function(c){c.classList.remove('fl-hl')});
-  var base=main.getBoundingClientRect(),ls=[],raw=[],byId=function(id){return document.getElementById(id)};
+  var base=main.getBoundingClientRect(),ls=[],raw=[],inner=[],byId=function(id){return document.getElementById(id)};
+  // A subagent box pins the port to its own height, so the line lines up with it.
+  var portY=function(b){if(!b)return null;var r=b.getBoundingClientRect();return r.top-base.top+Math.min(r.height/2,16)};
   (FL.board.links||[]).forEach(function(l){
     var e=fleetLinkCards(l,now,byId);if(!e)return;
     var lab=fleetLinkLabel(FL.board,l,now);
-    ls.push({from:e.src.id,to:e.dst.id,kind:l.kind,label:lab.text,labelW:flTextW(lab.text)});raw.push({l:l,lab:lab,cls:e.cls});
+    if(e.inCard){inner.push({e:e,l:l,lab:lab});return}
+    ls.push({from:e.src.id,to:e.dst.id,kind:l.kind,label:lab.text,labelW:flTextW(lab.text),fromY:portY(e.srcBox),toY:portY(e.dstBox)});raw.push({l:l,lab:lab,cls:e.cls});
   });
-  var w=main.scrollWidth,h=main.scrollHeight,lines='',pills='';
-  fleetRoute(flRects(main,base),ls,{bounds:{x0:0,y0:0,x1:w,y1:h},bands:flRects2(main,base,'.fl-account-head,.fl-strip,.fl-log,.fl-wt-tail,.fl-banner')}).forEach(function(r,i){
+  var w=main.scrollWidth,h=main.scrollHeight,lines='',pills='',n=0;
+  fleetRoute(flRects(main,base),ls,{bounds:{x0:0,y0:0,x1:w,y1:h},bands:flRects2(main,base,'.fl-account-head,.fl-strip,.fl-log,.fl-wt-tail,.fl-banner')}).forEach(function(r){
     var m=raw[r.index];r.cls=m.cls;
-    var s=flLinkSvg(r,m.l,m.lab,i);lines+=s.line;pills+=s.pill;
+    var s=flLinkSvg(r,m.l,m.lab,n++);lines+=s.line;pills+=s.pill;
+  });
+  // Messages between boxes of one card run down that card's left gutter.
+  var lane={};
+  inner.forEach(function(m){
+    var card=m.e.src,k=lane[card.id]||0;lane[card.id]=k+1;
+    var r=fleetRouteInCard(flRect(card,base),flRect(m.e.srcBox,base),flRect(m.e.dstBox,base),{lane:k,label:m.lab.text,labelW:flTextW(m.lab.text),bounds:{x1:w}});
+    if(!r)return;
+    r.from=card.id;r.to=card.id;r.cls=m.e.cls;
+    var s=flLinkSvg(r,m.l,m.lab,n++);lines+=s.line;pills+=s.pill;
   });
   svg.setAttribute('width',w);svg.setAttribute('height',h);
   // Chevron heads in user-space pixels, tip on the input port, filled by kind.

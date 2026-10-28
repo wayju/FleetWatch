@@ -70,15 +70,34 @@ function fleetRoundPath(pts, r) {
 }
 
 // Ports stack down each card's edge, ordered by where the other end is, so
-// lines to a card above leave above those to a card below. Sets t.fromY/t.toY.
+// lines to a card above leave above those to a card below. A link may pin its
+// port to a height (fromY/toY, in board space: where a subagent box sits); a
+// pinned port is clamped to the edge and nudged off its neighbours, and the
+// stack steps round it. Sets t.fromY/t.toY.
 function fleetRoutePorts(todo, byId, o) {
   function stack(side, other) {
-    var groups = {};
-    todo.forEach(function (t) { (groups[t.l[side]] = groups[t.l[side]] || []).push(t); });
+    var groups = {}, taken = {}, pins = [];
+    function near(id, y) { return (taken[id] || []).some(function (v) { return Math.abs(v - y) < o.portStep - 1; }); }
+    function put(t, id, y) { (taken[id] = taken[id] || []).push(y); t[side + 'Y'] = y; }
+    todo.forEach(function (t) {
+      var id = t.l[side];
+      if (t.l[side + 'Y'] == null) (groups[id] = groups[id] || []).push(t);
+      else pins.push(t);
+    });
+    pins.forEach(function (t) {
+      var id = t.l[side], c = byId[id], hi = c.y + c.h - 6;
+      var y = Math.max(c.y + o.portTop, Math.min(hi, t.l[side + 'Y']));
+      while (near(id, y) && y + o.portStep <= hi) y += o.portStep;
+      put(t, id, y);
+    });
     Object.keys(groups).forEach(function (id) {
-      var c = byId[id];
+      var c = byId[id], k = 0, hi = c.y + c.h - 6;
       groups[id].sort(function (p, q) { return byId[p.l[other]].y - byId[q.l[other]].y || p.index - q.index; });
-      groups[id].forEach(function (t, n) { t[side + 'Y'] = Math.min(c.y + o.portTop + n * o.portStep, c.y + c.h - 6); });
+      groups[id].forEach(function (t) {
+        var y;
+        do { y = Math.min(c.y + o.portTop + k * o.portStep, hi); k++; } while (near(id, y) && y < hi);
+        put(t, id, y);
+      });
     });
   }
   stack('from', 'to');
@@ -170,9 +189,9 @@ function fleetRouteRows(cards, b, o) {
 }
 
 // cards: [{id, x, y, w, h}] in one coordinate space (the board's).
-// links: [{from, to, kind, label, labelW}] where from/to are card ids, label is
-//   the pill text and labelW its measured width in px (else estimated from the
-//   length of label).
+// links: [{from, to, kind, label, labelW, fromY, toY}] where from/to are card ids,
+//   label is the pill text and labelW its measured width in px (else estimated
+//   from the length of label); fromY/toY optionally pin a port's height.
 // opts: { bounds: {x0, y0, x1, y1}, bands: [rects] } plus optional tuning (lane, hlane, ...).
 // Returns one entry per routable link:
 //   { index, from, to, kind, points, d, start, end, label: {x, y, w, h} }

@@ -6,6 +6,19 @@ All notable changes to FleetWatch are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-10-28
+
+### Fixed
+
+- Messages between a session and its own subagents, between sibling subagents
+  and hand-backs from a subagent are now drawn on `/`. They used to be dropped
+  because both ends sit in one card. The line runs inside the card, down the
+  inner left gutter (or through the gap between subagent columns), from the
+  sender's box to the receiver's, with the usual pill and class colour. A
+  cross-card message whose end is a visible subagent now lines its port up with
+  that subagent's box. A folded or hidden box falls back to the card header, and
+  the narrow-screen message list names the agents at each end.
+
 ## [0.1.3] - 2026-10-28
 
 ### Added

@@ -37,6 +37,22 @@ const evil = { sessions: [{ id: 'S1', slot: '1' }, { id: 'a"><img src=x onerror=
 const evilOut = m.fleetMsgList(evil.sessions[0], evil, NOW);
 assert(!/<(script|img|b|i)[ >]/.test(evilOut)&& !evilOut.includes('onerror=1>'), 'ids, names, labels and previews are escaped');
 
+console.log('messages inside one card');
+const inb = { sessions: [{ id: 'S1', slot: '1', agents: [{ id: 'a39a913ba1b59e565', type: 'code-reviewer' }, { id: 'a11111111111111aa', type: 'explorer' }] }],
+  links: [
+    { from: 'S1', to: 'S1', from_agent: 'a39a913ba1b59e565', to_agent: 'a11111111111111aa', at: NOW - 5, kind: 'message', preview: 'hello <b>' },
+    { from: 'S1', to: 'S1', from_agent: 'a11111111111111aa', to_agent: '', at: NOW - 9, kind: 'handback', preview: '' },
+    { from: 'S1', to: 'S1', from_agent: '', to_agent: 'a39a913ba1b59e565', at: NOW - 20, kind: 'message', preview: 'go' },
+  ] };
+const inl = m.fleetMsgList(inb.sessions[0], inb, NOW);
+assert(inl.includes('code-reviewer a39a913 \u2192 explorer a111111'), 'a sibling message names both agents');
+assert(inl.includes('explorer a111111 \u2192 main (hand-back)'), 'a hand-back names the agent and the session');
+assert(inl.includes('main \u2192 code-reviewer a39a913'), 'a message to an agent names the session as main');
+assert(!inl.includes('href="#fl-S1"') && !inl.includes('<b>'), 'same-card rows do not link to their own card, and previews are escaped');
+const pill = m.fleetLinkLabel(inb, inb.links[0], NOW);
+assert(pill.text.startsWith('code-reviewer a39a913 \u2192 explorer a111111'), 'the arrow pill names the agents, not the session twice');
+assert(m.fleetLinkLabel(board, board.links[0], NOW).text.startsWith('slot 2 \u2192 bbbb'), 'cross-card pills still name the sessions');
+
 console.log('model_class');
 assert(c.fleetModelClass({ model: 'm-a', model_class: 'small' }) === 'fl-mc-small', 'model_class names the class');
 assert(c.fleetModelClass({ model: 'm-a' }) === 'fl-mc-other', 'no model_class gives the neutral class');
