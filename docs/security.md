@@ -34,6 +34,8 @@ FleetWatch assumes a single trusted user on the machine and a network it does no
 | Threat | Mitigation |
 |---|---|
 | A remote or LAN client reads the board | loopback bind by default; a bearer token compared in constant time; the data routes fail closed with 503 if no token is available |
+| A web page on another origin signs in or acts as you | `POST` and `DELETE` on `/v1/session` need an `Origin` that matches the request's `Host`; the cookie is `SameSite=Strict` and carries only a random session id (ADR-012) |
+| A script injected into the page steals the token | the page is served with a policy that allows only same-origin script and style, and the session cookie is `HttpOnly` |
 | A web page in your browser reaches the board through DNS rebinding | the `Host` header must be in `allowed_hosts`, else 421 |
 | A client exhausts the service | a cap on `/events` subscribers (503 beyond), a 10 second write deadline, header and idle timeouts |
 | A credential pasted into a prompt appears on the board | redaction and clipping of every free-text field |
@@ -51,14 +53,16 @@ FleetWatch assumes a single trusted user on the machine and a network it does no
 
 ## The token
 
-`/fleet` and `/events` (and their `/v1` forms) need `Authorization: Bearer <token>`. `/health`, `/liveness` and `/version` do not. With `FLEET_TOKEN` unset the service generates a random 32-byte token on first run and stores it at `$XDG_STATE_HOME/fleet/token` (else `~/.local/state/fleet/token`) through a private temporary file and a rename, so the file is never wider than 0600 and a reader never sees it half written. Later runs reuse it. The log names the path, never the value. If no token can be obtained the data routes answer 503; they never serve open. The environment variable always wins.
+`/fleet` and `/events` (and their `/v1` forms) need `Authorization: Bearer <token>`. `/health`, `/liveness` and `/version` do not, and neither do the page (`/`, `/ui/*`) and the login route, which check nothing a visitor could not already see or which check the token themselves. With `FLEET_TOKEN` unset the service generates a random 32-byte token on first run and stores it at `$XDG_STATE_HOME/fleet/token` (else `~/.local/state/fleet/token`) through a private temporary file and a rename, so the file is never wider than 0600 and a reader never sees it half written. Later runs reuse it. The log names the path, never the value. If no token can be obtained the data routes answer 503; they never serve open. The environment variable always wins.
+
+A browser signs in once through `POST /v1/session`, which exchanges the token for an `HttpOnly`, `SameSite=Strict` cookie on `/v1` holding a random id. Sessions are held in memory, last 12 hours and are capped at 64; a restart ends them. `/v1/fleet` and `/v1/events` accept the cookie or the bearer, and every other route takes the bearer only. The cookie works on those two routes only, and an open event stream closes when its session ends. Logins are limited to 5 failures per remote address per minute. Browser cookies are host-wide, not per port, so another service on the same host name can see the cookie; give FleetWatch its own host name if that matters. Behind a TLS proxy, set `X-Forwarded-Proto: https` so the cookie is marked `Secure`. `ui.enabled: false` removes the page and the session route. See `docs/ui.md` and ADR-012.
 
 `/health` is unauthenticated and includes the effective profile (config path and adapter names), the last poll error and the recap error. Do not publish it beyond the network that may see that.
 
 ## Deployment rules
 
 1. **Loopback by default.** Do not change `server.bind` unless you need to. A container must bind `0.0.0.0` because a published port cannot reach a loopback bind; publish it on the host's loopback (`-p 127.0.0.1:8909:8909`) unless a proxy fronts it.
-2. **TLS only through a reverse proxy.** FleetWatch does not terminate TLS. Put it behind a proxy that does, and pass the `Authorization` header through.
+2. **TLS only through a reverse proxy.** FleetWatch does not terminate TLS. Put it behind a proxy that does, and pass the `Authorization`, `Host` and `Origin` headers through unchanged. Set `X-Forwarded-Proto: https` so the session cookie is marked `Secure`.
 3. **Never on a public interface.** The board is your working notes. If it must be reachable over the internet, put authentication in front of it as well as the token.
 4. **Name the proxy in `allowed_hosts`.** Requests are admitted by their `Host` header. The proxy's public name and port must be listed, or every request gets 421.
 

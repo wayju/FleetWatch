@@ -3,7 +3,7 @@ package core
 
 import (
 	"bytes"
-	"crypto/subtle"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/wayju/fleetwatch/internal/board"
@@ -107,28 +107,55 @@ func hostGuard(allowed []string, next http.Handler) http.Handler {
 	})
 }
 
-// tokenGuard requires `Authorization: Bearer <token>` on every route except the
-// probes (/health, /liveness, /version, and the same under /v1). It fails closed: with no token
-// configured the data routes answer 503 rather than serving the board open.
+// tokenGuard is authGuard with no browser sessions: the bearer header only.
 func tokenGuard(token string, next http.Handler) http.Handler {
-	want := []byte(token)
+	return authGuard(token, nil, next)
+}
+
+// open reports whether a path needs no credential: the probes (/health,
+// /liveness, /version, and the same under /v1), the embedded page and its
+// assets, and the login route, which checks the token itself. The page routes
+// are only registered when the UI is on, so with it off they answer 404.
+func open(p string) bool {
+	switch p {
+	case "/health", "/liveness", "/version", "/v1/health", "/v1/liveness", "/v1/version", "/", sessionPath:
+		return true
+	}
+	return strings.HasPrefix(p, "/ui/")
+}
+
+// cookieRoutes are the only paths a session cookie is accepted on.
+var cookieRoutes = map[string]bool{"/v1/fleet": true, "/v1/events": true}
+
+// authGuard requires `Authorization: Bearer <token>` on every other route, or,
+// on the two /v1 data routes only, a live session cookie from POST
+// /v1/session. It fails closed: with no token configured the data routes
+// answer 503 rather than serving the board open.
+func authGuard(token string, sessions *sessionStore, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/health", "/liveness", "/version", "/v1/health", "/v1/liveness", "/v1/version":
+		if open(r.URL.Path) {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if len(want) == 0 {
+		if token == "" {
 			http.Error(w, "FLEET_TOKEN not configured", http.StatusServiceUnavailable)
 			return
 		}
 		got, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-		if !ok || subtle.ConstantTimeCompare([]byte(got), want) != 1 {
-			w.Header().Set("WWW-Authenticate", "Bearer")
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+		if ok && authEqual(got, token) {
+			next.ServeHTTP(w, r)
 			return
 		}
-		next.ServeHTTP(w, r)
+		// The cookie is honoured on the two data routes only, and the session
+		// travels in the context so a stream can end with it.
+		if cookieRoutes[r.URL.Path] && sessions != nil {
+			if ref, ok := sessions.fromCookie(r); ok {
+				next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), sessionCtxKey{}, ref)))
+				return
+			}
+		}
+		w.Header().Set("WWW-Authenticate", "Bearer")
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
 	})
 }
 

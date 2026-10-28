@@ -15,7 +15,7 @@ The version is the single line in `cmd/fleetwatch/VERSION`, embedded in the bina
 3. The release workflow, triggered only by a `v*` tag, in three jobs:
    - `build` checks that the tag is `vX.Y.Z`, equals `v` plus the contents of `VERSION`, and sits on `main`; runs `go vet ./...` and `go test -race ./...`; cross-compiles `fleetwatch-linux-amd64` and `fleetwatch-linux-arm64` with `CGO_ENABLED=0`, `-trimpath` and the version and commit stamped in; and writes `SHA256SUMS`. It has no write permission.
    - `image` builds a multi-arch (amd64 and arm64) image from `Dockerfile.release`, pushes `ghcr.io/wayju/fleetwatch:<version>` and `:<major.minor>`, and attests its build provenance.
-   - `release` attests the binaries and publishes a GitHub release with the binaries and `SHA256SUMS` attached.
+   - `release` attests the binaries and the page library tarball (`fleetwatch-ui-<version>.tgz`, an `npm pack` of `web/`) and publishes a GitHub release with them and `SHA256SUMS` attached. A host that renders the board itself depends on the tarball by its release URL.
 
    While the repository is private, both attestation steps are skipped and the release is marked as a prerelease. GitHub stores attestations only for public repositories on a personal account, so `gh attestation verify` works only for releases cut after the repository went public.
 

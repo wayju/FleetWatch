@@ -6,6 +6,34 @@ All notable changes to FleetWatch are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-28
+
+### Added
+
+- A browser page at `/` renders the board live, so a standalone install has
+  something to look at. It is served from files embedded in the binary under a
+  policy that allows no inline script, and is built from `web/`
+  (`@fleetwatch/ui`, plain JavaScript, no dependencies).
+- Browser sign-in: `POST /v1/session` exchanges the token for an `HttpOnly`,
+  `SameSite=Strict` session cookie holding a random id, and `DELETE
+  /v1/session` signs out. `/v1/fleet` and `/v1/events` accept the cookie or the
+  bearer. Login requires an `Origin` that matches the request host (ADR-012).
+- Config `ui.enabled` (default true) switches the page and the session route
+  off, and `ui.theme_file` serves an operator's stylesheet in place of the
+  built-in theme.
+- Each release attaches `fleetwatch-ui-<version>.tgz`, the page library as an
+  npm tarball, so another host can render the same board.
+- The page is split into `fleet.css` (structure, `--fl-*` tokens only) and
+  `theme.css` (colours, fonts and model-class fills).
+
+### Changed
+
+- A model's colour on the page comes from the board's `model_class` and the
+  theme. The page no longer guesses a class from a model name.
+- The worktree removal hint on the page is `git worktree remove`.
+- Page options `heading`, `backTitle` and `emptyText` let a host head the page
+  apart from its `<title>`, give the back link a tooltip and word the empty state.
+
 ## [0.1.2] - 2026-10-27
 
 ### Changed

@@ -15,6 +15,10 @@
       "class": "small"
     }
   ],
+  "ui": {
+    "enabled": true,
+    "theme_file": "~/.config/fleet/theme.css"
+  },
   "recap": {
     "url": "https://gateway.example.com:4000",
     "model": "my-summary-model",

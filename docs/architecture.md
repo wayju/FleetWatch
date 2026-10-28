@@ -16,7 +16,7 @@ flowchart LR
     FS --> AG
     COL -->|"Snapshot"| HUB["event hub: latest board, subscribers"]
     UP["upstream hosts (hub mode)"] -->|"/v1/events"| COL
-    HUB --> HTTP["HTTP: /v1/fleet, /v1/events, probes"]
+    HUB --> HTTP["HTTP: /v1/fleet, /v1/events, page, probes"]
     HTTP --> C["clients"]
 ```
 
@@ -95,6 +95,8 @@ With a `hub` section the same loop collects from other FleetWatch instances inst
 | `internal/forge`, `internal/models` | issue lookups, and the config-driven model table |
 | `internal/fsafe`, `internal/httpsafe`, `internal/textsafe` | safe file reads, HTTP client policy, redaction and clipping |
 | `internal/policy` | repository-wide guard tests |
+| `internal/ui` | the embedded page, built from `web/` |
+| `web/` | the page: render functions, stylesheets and build script (plain JavaScript, no dependencies) |
 | `internal/fleettest` | test support that fabricates transcripts |
 
 The wire types in `internal/board` are the contract with every client. Golden snapshots under `internal/core/testdata/golden` fail a test when the board changes, so a change to the contract is always deliberate and visible in the diff.

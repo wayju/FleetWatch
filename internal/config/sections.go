@@ -105,6 +105,9 @@ func (r *Resolved) recapEvery(envVal string, fileVal *string) error {
 
 // sectionValue renders a section setting for Describe.
 func (r *Resolved) sectionValue(key string) (string, bool) {
+	if v, ok := r.uiValue(key); ok {
+		return v, true
+	}
 	switch key {
 	case "cost.prices":
 		return r.PricesFile, true

@@ -29,6 +29,10 @@ The real file is plain JSON with no comments; the comments below are for reading
     "max_subscribers": 32,            // concurrent /events streams, at least 1 (FLEET_MAX_SUBSCRIBERS)
     "memory_limit_mib": 0             // Go soft memory limit in MiB; 0 (default) sets none; GOMEMLIMIT wins
   },
+  "ui": {
+    "enabled": true,                  // false: no page at /, and no /v1/session; default true
+    "theme_file": "~/.config/fleet/theme.css"   // served as theme.css in place of the built-in theme; default: the built-in theme
+  },
   "cost": { "prices": "/etc/fleet/prices.json" },   // default: none, nothing priced (FLEET_PRICES_FILE)
   "models": [                         // first match wins; default: none
     { "match": "example-large-*",     // path.Match glob over the transcript's model id; write a literal bracket as \\[
@@ -99,6 +103,7 @@ The real file is plain JSON with no comments; the comments below are for reading
 | Durations | `poll`, `window`, `recent`, `rescan`, `recap.every`, `timeout` and `fresh` use Go duration syntax (`2s`, `30m`) and must be positive. A malformed environment override is ignored; a malformed file value is an error. |
 | Cleartext | A hub upstream or recap `url` that is plain `http://` to a non-loopback host is an error unless `allow_insecure` is true, which also logs a warning at start. |
 | Tokens | A forge names its token by `token_env` or `token_file`. The value is read once at startup and never logged. Hub tokens come only from `token_file`. |
+| UI | `ui.enabled` is a boolean and `ui.theme_file` a path (`~` expands). The theme file is checked and read once at start (a regular `.css` file, not a symlink, at most 512 KiB); a file that fails is logged and the built-in theme is served. See `docs/ui.md`. |
 | Hub | A `hub` section needs at least one upstream, or `local` true. Upstream names are required and unique. |
 | Forge hosts | No remote host may be claimed by two forges. |
 | tmux scrape | `scrape: true` without `rules` is an error. The rules file is strict JSON: `{ "<agent type>": [ { "state", "reason", "regex" } ] }`, tried in order, first match wins. A bad regex or state fails the load. |

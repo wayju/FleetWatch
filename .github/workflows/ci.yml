@@ -35,6 +35,12 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      - name: Web tests and committed build
+        run: |
+          node --test web/*.test.js
+          node web/build.mjs
+          git diff --exit-code internal/ui/dist
+
       - name: gofmt
         run: |
           unformatted="$(gofmt -l .)"

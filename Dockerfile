@@ -5,6 +5,18 @@
 ARG GO_IMAGE=golang:1.27.3-alpine3.24@sha256:d530cf60723abf1ffae0cd16bb546b379ec0550d2f3815e5b16ed69dbc00fba4
 ARG ALPINE_IMAGE=alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
 
+ARG NODE_IMAGE=node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914
+
+# The page is built from web/ and the output is committed under internal/ui/dist.
+# This stage (`docker build --target web .`) runs the page's tests, rebuilds it
+# and fails when the committed output differs. The default build never needs it:
+# Go embeds the committed files, so the binary builds without Node.
+FROM ${NODE_IMAGE} AS web
+WORKDIR /src
+COPY web ./web
+COPY internal/ui/dist ./committed
+RUN node --test web/*.test.js && node web/build.mjs && diff -r committed internal/ui/dist
+
 FROM ${GO_IMAGE} AS build
 WORKDIR /src
 COPY . .

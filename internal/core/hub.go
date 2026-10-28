@@ -96,8 +96,24 @@ func (h *Hub) serveEvents(w http.ResponseWriter, r *http.Request) {
 	rc := http.NewResponseController(w)
 	arm := func() { _ = rc.SetWriteDeadline(time.Now().Add(writeTimeout)) }
 
+	// A stream admitted by a session cookie ends with that session: at logout,
+	// at expiry, or at the next write if either was missed. Bearer streams have
+	// no session and run until the client leaves.
+	ref, tracked := sessionFrom(r.Context())
+	var ended <-chan struct{}
+	var expiry <-chan time.Time
+	if tracked {
+		ended = ref.done
+		t := time.NewTimer(ref.remaining())
+		defer t.Stop()
+		expiry = t.C
+	}
+
 	var sent uint64
 	send := func() bool {
+		if tracked && !ref.alive() {
+			return false
+		}
 		board, v, at := h.Latest()
 		arm()
 		var err error
@@ -121,11 +137,18 @@ func (h *Hub) serveEvents(w http.ResponseWriter, r *http.Request) {
 		select {
 		case <-r.Context().Done():
 			return
+		case <-ended:
+			return
+		case <-expiry:
+			return
 		case <-c:
 			if !send() {
 				return
 			}
 		case <-ping.C:
+			if tracked && !ref.alive() {
+				return
+			}
 			arm()
 			if _, err := fmt.Fprint(w, ": ping\n\n"); err != nil {
 				return

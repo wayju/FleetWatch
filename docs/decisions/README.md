@@ -15,6 +15,7 @@ Each record states the context, the decision and its consequences. Code comments
 | [009](ADR-009-recap-outside-the-session.md) | Recap outside the session | Summaries are produced by the observer, never written into the observed session. | accepted |
 | [010](ADR-010-hook-state-file-contract.md) | Hook state-file contract | Agent hooks publish session state as one JSON file per session under a versioned schema. | accepted |
 | [011](ADR-011-private-adapters.md) | Private adapters | Site-specific adapters plug in through a registration file and a public export. | accepted |
+| [012](ADR-012-browser-sessions.md) | Browser sessions | A browser trades the token once for an HttpOnly session cookie, with an Origin check on the login route and a strict policy on the embedded page. | accepted |
 
 ## Template
 

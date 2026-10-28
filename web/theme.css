@@ -1,0 +1,31 @@
+/* Theme for the fleet page: the token values and the model-class fills. A host replaces
+   this file whole (ui.theme_file in the FleetWatch config) and leaves fleet.css alone.
+   A card's model class is the board's model_class, so a class is whatever the models
+   config names; a class with no rule here falls back to --fl-mc-other. */
+:root{
+--fl-night:#0f172a;
+--fl-panel:#1e293b;
+--fl-rule:#334155;
+--fl-rule-strong:#475569;
+--fl-text:#e2e8f0;
+--fl-dim:#94a3b8;
+--fl-faint:#64748b;
+--fl-sky:#38bdf8;
+--fl-sky-panel:#1e3a5f;
+--fl-violet:#a78bfa;
+--fl-green:#34d399;
+--fl-green-g:#064e3b;
+--fl-rose:#fca5a5;
+--fl-rose-g:#7f1d1d;
+--fl-mc-other:#64748b;
+--fl-amber:#fcd34d;
+--fl-amber-g:#78350f;
+--fl-indigo:#c4b5fd;
+--fl-indigo-g:#312e81;
+--fl-mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+--fl-sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+--fl-green-glow:rgba(52,211,153,.2);--fl-green-clear:rgba(52,211,153,0);
+--fl-sky-wash:rgba(56,189,248,.07);--fl-violet-wash:rgba(167,139,250,.07);--fl-amber-glow:rgba(252,211,77,.25);
+--fl-shadow:rgba(0,0,0,0.5);
+--fl-select-arrow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%2394a3b8'/%3E%3C/svg%3E")}
+.fl-mc-fable{background:#f472b6}.fl-mc-opus{background:#fb923c}.fl-mc-sonnet{background:#38bdf8}.fl-mc-haiku{background:#34d399}

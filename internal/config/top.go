@@ -30,6 +30,9 @@ func (r *Resolved) top(env Env, doc *fileDoc) error {
 		// Neutral and port-aware: only this machine, on the port in effect.
 		r.AllowedHosts = []string{"localhost:" + r.Port, "127.0.0.1:" + r.Port}
 	}
+	if err := r.uiFromFile(doc); err != nil {
+		return err
+	}
 	return r.sections(env, doc)
 }
 

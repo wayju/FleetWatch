@@ -11,6 +11,8 @@ Notes for AI agents extending FleetWatch. Humans may find them useful too. For w
 | Format check | `gofmt -l .` (must print nothing) |
 | Run | `go run ./cmd/fleetwatch` |
 | Build | `CGO_ENABLED=0 go build -trimpath -o fleetwatch ./cmd/fleetwatch` |
+| Page tests | `node --test web/*.test.js` |
+| Rebuild the page | `node web/build.mjs`, then commit `internal/ui/dist` (CI fails on any difference) |
 
 Vet and test must both pass before a change is done. Go 1.24 or later. The binary depends on the standard library only; do not add a dependency (ADR-006).
 
@@ -29,6 +31,8 @@ Vet and test must both pass before a change is done. Go 1.24 or later. The binar
 | `internal/forge/`, `internal/models/` | issue lookups, and the config-driven model table |
 | `internal/fsafe/`, `internal/httpsafe/`, `internal/textsafe/` | safe reads, HTTP client policy, redaction |
 | `internal/policy/` | repository-wide guard tests |
+| `internal/ui/` | the embedded page; `dist/` is build output, committed |
+| `web/` | the page source (plain JavaScript, no dependencies); `node web/build.mjs` writes `internal/ui/dist` |
 | `internal/fleettest/` | test support that fabricates transcripts |
 | `plugin/` | the Claude Code hook plugin |
 | `schema/` | the session state file schema |
@@ -48,7 +52,8 @@ Each of these is enforced by a test or is a decision in `docs/decisions/`. Do no
 7. **HTTP clients that carry a token refuse redirects** (`httpsafe.RefuseRedirect`) and refuse cleartext to a non-loopback host unless the entry opts in.
 8. **The wire contract is frozen by goldens** (`internal/core/testdata/golden`). A change to a board field updates the goldens in the same commit and says why. Routes are served under `/v1`.
 9. **No tracker numbers in comments or docs.** Cite `ADR-00N` or state the reason (`internal/policy/citations_test.go`).
-10. **Standard library only** (ADR-006).
+10. **Standard library only** (ADR-006). The page in `web/` has no npm dependencies either, and no model name, host or URL belongs in it beyond `theme.css`, which is data an operator replaces.
+11. **Browser auth** (ADR-012): the session cookie holds a random id, never the token; the page is served under a policy with no inline script.
 
 ## Style
 

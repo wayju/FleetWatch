@@ -50,6 +50,8 @@ type Resolved struct {
 	Bind           string         // listen address host; default 127.0.0.1, "0.0.0.0" for all
 	Hub            *HubSpec       // nil: single-host mode (see ADR-008)
 	MemoryLimitMiB int            // server.memory_limit_mib; 0 leaves the Go runtime default
+	UIEnabled      bool           // ui.enabled: serve the page and the session route; default true
+	UIThemeFile    string         // ui.theme_file: served as theme.css in place of the built-in theme
 	Warnings       []string       // startup lines for settings that are legal but weaken security
 
 	Path    string            // the file read, or "default"
@@ -78,6 +80,7 @@ type fileDoc struct {
 	Models json.RawMessage `json:"models"`
 	Recap  json.RawMessage `json:"recap"`
 	Hub    json.RawMessage `json:"hub"`
+	UI     json.RawMessage `json:"ui"`
 }
 
 // strict decodes raw into v, refusing unknown keys and trailing data.

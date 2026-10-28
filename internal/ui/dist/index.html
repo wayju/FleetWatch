@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FleetWatch</title>
+<link rel="stylesheet" href="/ui/fleet.css">
+<link rel="stylesheet" href="/ui/theme.css">
+</head>
+<body>
+<div class="fl-top">
+  <h1 class="fl-h1"><span>FleetWatch</span></h1>
+  <span class="fl-live" id="fl-live"><i></i>connecting</span>
+  <button type="button" class="fl-btn" id="fl-signout" hidden>sign out</button>
+  <div class="fl-topright"><div class="fl-counts" id="fl-counts"></div><div class="fl-slots" id="fl-slots" aria-label="jump to a session"></div></div>
+  <div class="fl-controls">
+    <button type="button" class="fl-btn" data-filter="all">all</button>
+    <button type="button" class="fl-btn" data-filter="attention">needs me</button>
+    <button type="button" class="fl-btn" data-filter="working">working</button>
+    <button type="button" class="fl-btn" id="fl-ended">show ended</button>
+    <label class="fl-order"><span>order</span><select class="fl-btn" id="fl-order">
+      <option value="slot">slot</option>
+      <option value="started">started</option>
+      <option value="attention">needs me first</option>
+      <option value="active">last active</option>
+      <option value="cost">highest cost</option>
+    </select></label>
+  </div>
+</div>
+<div class="fl-login" id="fl-login" hidden>
+  <form id="fl-login-form" class="fl-login-box" autocomplete="off">
+    <label for="fl-token">Access token</label>
+    <input id="fl-token" type="password" autocomplete="off" spellcheck="false" required>
+    <button type="submit" class="fl-btn">sign in</button>
+    <div class="fl-login-err" id="fl-login-err" role="alert"></div>
+  </form>
+</div>
+<main class="fl-main">
+  <svg id="fl-links" aria-hidden="true"></svg>
+  <div id="fl-branches"></div>
+  <div id="fl-accounts"><div class="fl-empty">Waiting for the first board…</div></div>
+  <details class="fl-log" data-key="log"><summary>session log</summary><div id="fl-log-body"></div></details>
+</main>
+<script src="/ui/fleet.js"></script>
+</body></html>

@@ -88,13 +88,22 @@ func Run(env config.Env) {
 	if err != nil {
 		log.Printf("WARNING: no token available (%v); /fleet and /events answer 503 until FLEET_TOKEN is set", err)
 	}
+	if w := weakTokenWarning(token); w != "" {
+		log.Print(w)
+	}
 	health := startPolling(res, forge.NewLookup(set), recap, hub)
+	mux := newMux(hub, health, every, recap)
+	var sessions *sessionStore
+	if res.UIEnabled {
+		sessions = newSessionStore(sessionTTL, sessionCap)
+	}
+	registerUI(mux, uiOptions{Enabled: res.UIEnabled, ThemeFile: res.UIThemeFile}, token, sessions)
 
 	addr := net.JoinHostPort(res.Bind, res.Port)
 	log.Printf("fleetwatch on %s (home %s, poll %s, window %s, text %v, forges %d, recap %v)",
 		addr, res.Home, every, res.Window, res.ShowText, len(res.Forges), recap != nil)
 	srv := &http.Server{
-		Addr: addr, Handler: hostGuard(res.AllowedHosts, tokenGuard(token, newMux(hub, health, every, recap))),
+		Addr: addr, Handler: hostGuard(res.AllowedHosts, authGuard(token, sessions, mux)),
 		ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10,
 	}
 	log.Fatal(srv.ListenAndServe())
