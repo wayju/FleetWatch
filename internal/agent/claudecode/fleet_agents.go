@@ -42,6 +42,9 @@ func AgentsOf(now time.Time, tbl *models.Table, t *Transcript, files map[string]
 			av.ID = sub.ID
 		}
 		a.parkView(now, sub, &av)
+		if a.wokenBy(sub) {
+			av.Status, av.EndedAt = "running", 0
+		}
 		if sub != nil {
 			fillFromSub(now, tbl, &av, sub)
 		}
@@ -59,7 +62,12 @@ func AgentsOf(now time.Time, tbl *models.Table, t *Transcript, files map[string]
 		fillFromSub(now, tbl, &av, s)
 		out = append(out, av)
 	}
-	// Keep running ones and the recently finished, newest first.
+	return keepRecent(now, out)
+}
+
+// keepRecent keeps running agents and the recently finished, newest first,
+// capped at MaxAgents; never nil.
+func keepRecent(now time.Time, out []board.AgentView) []board.AgentView {
 	var keep []board.AgentView
 	for _, a := range out {
 		end := a.EndedAt
@@ -112,6 +120,21 @@ func fillFromSub(now time.Time, tbl *models.Table, av *board.AgentView, s *Trans
 			av.Status = "stalled"
 		}
 	}
+}
+
+// wokenSlack absorbs the gap between an agent's last transcript line and the
+// hand-back or notification the parent records for it a moment later.
+const wokenSlack = 2 * time.Second
+
+// wokenBy reports whether a finished agent is working again: SendMessage
+// resumes an agent from its transcript after its hand-back or notification,
+// so its own transcript moving past the end means it is running. fillFromSub
+// ends it again at its next end_turn.
+func (a *AgentLaunch) wokenBy(sub *Transcript) bool {
+	if sub == nil || a.parked != nil || a.EndedAt.IsZero() || (a.Status != "done" && a.Status != "error") {
+		return false
+	}
+	return sub.LastActivity.After(a.EndedAt.Add(wokenSlack))
 }
 
 // matchSub finds a launch's own transcript: by agent id, else by its prompt

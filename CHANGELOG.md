@@ -6,6 +6,14 @@ All notable changes to FleetWatch are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-10-28
+
+### Fixed
+
+- A background subagent woken by `SendMessage` after it handed back now shows
+  as working while it works. It used to stay "done", so its box and its message
+  arrows disappeared and the header counted no subagents.
+
 ## [0.1.4] - 2026-10-28
 
 ### Fixed
